@@ -21,7 +21,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-
+//添加一行注释（git实验）
 public class TextGraph {
     private Map<String, Set<Edge>> graph;  //一个映射，也就是一个字符串映射到一个edge类的集合，该edge类有两个属性，顶点名字已经该条边的权重，如下
     private static class Edge {
