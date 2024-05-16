@@ -423,27 +423,32 @@ public class TextGraph {
 
                     // 如果 startWord 不空，endWord 为空，则以 startWord 为源顶点，遍历除了 startWord 之外的所有顶点
                     if (!startWord.isEmpty() && endWord.isEmpty()) {
-                        for (String vertex : textGraph.graph.keySet()) {
-                            if (!vertex.equals(startWord)) {
-                                // 以每个顶点作为目标顶点调用 calcShortestPath 函数计算最短路径
-                                String shortestPath = textGraph.calcShortestPath(sourceWord, vertex);
-                                System.out.println("Shortest path from \"" + sourceWord + "\" to \"" + vertex + "\": " + shortestPath);
+                        if (!textGraph.graph.containsKey(sourceWord)) {
+                            System.out.println("No " + "\"" + sourceWord + "\"" + " in the graph!");
+                        }
+                        else {
+                            for (String vertex : textGraph.graph.keySet()) {
+                                if (!vertex.equals(startWord)) {
+                                    // 以每个顶点作为目标顶点调用 calcShortestPath 函数计算最短路径
+                                    String shortestPath = textGraph.calcShortestPath(sourceWord, vertex);
+                                    System.out.println(shortestPath);
 
-                                // 如果路径存在，展示最短路径和最短路径长度
-                                if (!shortestPath.startsWith("No")) {
-                                    textGraph.showDirectedGraph(textGraph.graph, shortestPath);
-                                    String[] pathWords = shortestPath.split("->");
-                                    int pathLength = 0;
-                                    String previousWord = sourceWord.toLowerCase();
+                                    // 如果路径存在，展示最短路径和最短路径长度
+                                    if (!shortestPath.startsWith("No")) {
+                                        textGraph.showDirectedGraph(textGraph.graph, shortestPath);
+                                        String[] pathWords = shortestPath.split("->");
+                                        int pathLength = 0;
+                                        String previousWord = sourceWord.toLowerCase();
 
-                                    // 遍历路径中的单词，累加权重
-                                    for (String currentWord : pathWords) {
-                                        currentWord = currentWord.toLowerCase();
-                                        pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
-                                        previousWord = currentWord;
+                                        // 遍历路径中的单词，累加权重
+                                        for (String currentWord : pathWords) {
+                                            currentWord = currentWord.toLowerCase();
+                                            pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
+                                            previousWord = currentWord;
+                                        }
+
+                                        System.out.println("The length of the shortest path from \"" + sourceWord + "\" to \"" + vertex + "\" is: " + pathLength);
                                     }
-
-                                    System.out.println("The length of the shortest path from \"" + sourceWord + "\" to \"" + vertex + "\" is: " + pathLength);
                                 }
                             }
                         }
@@ -451,27 +456,32 @@ public class TextGraph {
                     // 如果 startWord 为空，endWord 不空，则以 endWord 为源顶点，遍历除了 endWord 之外的所有顶点
                     else if (startWord.isEmpty() && !endWord.isEmpty())
                     {
-                        for (String vertex : textGraph.graph.keySet()) {
-                            if (!vertex.equals(endWord)) {
-                                // 以每个顶点作为目标顶点调用 calcShortestPath 函数计算最短路径
-                                String shortestPath = textGraph.calcShortestPath(targetWord, vertex);
-                                System.out.println("Shortest path from \"" + targetWord + "\" to \"" + vertex + "\": " + shortestPath);
+                        if (!textGraph.graph.containsKey(targetWord)) {
+                            System.out.println("No " + "\"" + targetWord + "\"" + " in the graph!");
+                        }
+                        else {
+                            for (String vertex : textGraph.graph.keySet()) {
+                                if (!vertex.equals(endWord)) {
+                                    // 以每个顶点作为目标顶点调用 calcShortestPath 函数计算最短路径
+                                    String shortestPath = textGraph.calcShortestPath(targetWord, vertex);
+                                    System.out.println(shortestPath);
 
-                                // 如果路径存在，展示最短路径和最短路径长度
-                                if (!shortestPath.startsWith("No")) {
-                                    textGraph.showDirectedGraph(textGraph.graph, shortestPath);
-                                    String[] pathWords = shortestPath.split("->");
-                                    int pathLength = 0;
-                                    String previousWord = vertex.toLowerCase();
+                                    // 如果路径存在，展示最短路径和最短路径长度
+                                    if (!shortestPath.startsWith("No")) {
+                                        textGraph.showDirectedGraph(textGraph.graph, shortestPath);
+                                        String[] pathWords = shortestPath.split("->");
+                                        int pathLength = 0;
+                                        String previousWord = vertex.toLowerCase();
 
-                                    // 遍历路径中的单词，累加权重
-                                    for (String currentWord : pathWords) {
-                                        currentWord = currentWord.toLowerCase();
-                                        pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
-                                        previousWord = currentWord;
+                                        // 遍历路径中的单词，累加权重
+                                        for (String currentWord : pathWords) {
+                                            currentWord = currentWord.toLowerCase();
+                                            pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
+                                            previousWord = currentWord;
+                                        }
+
+                                        System.out.println("The length of the shortest path from \"" + targetWord + "\" to \"" + vertex + "\" is: " + pathLength);
                                     }
-
-                                    System.out.println("The length of the shortest path from \"" + targetWord + "\" to \"" + vertex + "\" is: " + pathLength);
                                 }
                             }
                         }
@@ -480,7 +490,7 @@ public class TextGraph {
                     else if (!startWord.isEmpty() && !endWord.isEmpty()) {
                         // 计算并展示最短路径，并打印最短路径长度
                         String shortestPath = textGraph.calcShortestPath(sourceWord, targetWord);
-                        System.out.println("Shortest path from \"" + sourceWord + "\" to \"" + targetWord + "\": " + shortestPath);
+                        System.out.println(shortestPath);
 
                         // 如果路径存在，展示最短路径和最短路径长度
                         if (!shortestPath.startsWith("No")) {
@@ -498,6 +508,9 @@ public class TextGraph {
 
                             System.out.println("The length of the shortest path from \"" + sourceWord + "\" to \"" + targetWord + "\" is: " + pathLength);
                         }
+                    }
+                    else{
+                        System.out.println("No Word1 and Word2.");
                     }
                     break;
 
