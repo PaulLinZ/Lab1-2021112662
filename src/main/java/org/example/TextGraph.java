@@ -2,28 +2,27 @@ package org.example;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 import com.mxgraph.layout.mxCircleLayout;
 import com.mxgraph.layout.mxIGraphLayout;
 import com.mxgraph.util.mxCellRenderer;
+import com.mxgraph.util.mxConstants;
+import com.mxgraph.view.mxStylesheet;
 import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
-import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.DefaultWeightedEdge;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
 public class TextGraph {
-    private Map<String, Set<Edge>> graph;  //一个映射，也就是一个字符串映射到一个edge类的集合，该edge类有两个属性，顶点名字已经该条边的权重，如下
+    private Map<String, Set<Edge>> graph;  //一个映射，也就是一个字符串映射到一个edge类的集合，该edge类有两个属性，顶点名字以及该条边的权重，如下
     private static class Edge {
         String vertex;
         int weight;
@@ -36,7 +35,7 @@ public class TextGraph {
     public TextGraph(){
         this.graph = new HashMap<>();
     }
-    void showDirectedGraph(Map<String, Set<Edge>> G) throws IOException {
+    void showDirectedGraph(Map<String, Set<Edge>> G, String... shortestPath) throws IOException {
         Graph<String, DefaultWeightedEdge> graph = new DefaultDirectedWeightedGraph<>(DefaultWeightedEdge.class);
         G.keySet().forEach(graph::addVertex);   // 构造顶点
         for (Map.Entry<String, Set<Edge>> entry : G.entrySet()) { //构造边
@@ -60,6 +59,25 @@ public class TextGraph {
             String weightLabel = String.valueOf(graph.getEdgeWeight(edge));
             graphAdapter.getEdgeToCellMap().get(edge).setValue(weightLabel);
         }
+        // 如果传入了 shortestPath 参数，则突出显示最短路径
+        if (shortestPath.length > 0) {
+            // 突出显示最短路径上的边
+            String[] pathEdges = shortestPath[0].split("->");
+            for (int i = 0; i < pathEdges.length - 1; i++) {
+                String source = pathEdges[i];
+                String target = pathEdges[i + 1];
+                DefaultWeightedEdge edge = graph.getEdge(source, target);
+                if (edge != null) {
+                    mxStylesheet stylesheet = graphAdapter.getStylesheet();
+                    Map<String, Object> highlightedEdgeStyle = new HashMap<>();
+                    highlightedEdgeStyle.put(mxConstants.STYLE_STROKECOLOR, "#FF0000"); // 将最短路径的边设置为红色
+                    highlightedEdgeStyle.put(mxConstants.STYLE_STROKEWIDTH, 3.0f); // 加粗边的宽度
+                    stylesheet.putCellStyle("highlightedEdgeStyle", highlightedEdgeStyle); // 将样式添加到样式表
+                    graphAdapter.getEdgeToCellMap().get(edge).setStyle("highlightedEdgeStyle");
+                }
+            }
+        }
+
         //生成png文件
         mxIGraphLayout layout = new mxCircleLayout(graphAdapter);
         layout.execute(graphAdapter.getDefaultParent());
@@ -113,13 +131,167 @@ public class TextGraph {
         }
     }
     String generateNewText(String inputText){
-        return null;
+        // 按空格分割成单词数组
+        String[] inputWords = inputText.split("\\s+");
+        StringBuilder newText = new StringBuilder();
+        Random random = new Random();
+
+        for (int i = 0; i < inputWords.length - 1; i++) {
+            // 将当前单词添加到新文本
+            newText.append(inputWords[i]).append(" ");
+            // 查询bridge word
+            String bridgeWord = queryBridgeWords(inputWords[i].toLowerCase(), inputWords[i + 1].toLowerCase());
+            // 如果存在bridge word，随机选择一个插入
+            if (!bridgeWord.isEmpty() && !bridgeWord.startsWith("No")) {
+                String[] bridgeWords = bridgeWord.substring(bridgeWord.indexOf(":") + 2).split(", ");
+                int randomIndex = random.nextInt(bridgeWords.length); // 随机索引
+                newText.append(bridgeWords[randomIndex]).append(" "); // 插入随机选择的bridge word
+            }
+        }
+        // 添加最后一个单词到新文本
+        newText.append(inputWords[inputWords.length - 1]);
+
+        // 返回生成的新文本
+        return newText.toString();
     }
-    String calcShortestPath(String word1, String word2){
-        return null;
+    String calcShortestPath(String word1, String word2) {
+        word1 = word1.toLowerCase();
+        word2 = word2.toLowerCase();
+
+        if (!graph.containsKey(word1) || !graph.containsKey(word2)) {
+            return "No " + "\"" + word1 + "\"" + " or " + "\"" + word2 + "\"" + " in the graph!";
+        }
+
+        // 使用 HashMap 存储每个节点的最短路径估计和前驱节点
+        Map<String, Integer> distances = new HashMap<>();
+        Map<String, String> predecessors = new HashMap<>();
+
+        // 初始化所有节点的最短路径估计为无穷大，源节点为 0
+        for (String word : graph.keySet()) {
+            distances.put(word, Integer.MAX_VALUE);
+        }
+        distances.put(word1, 0);
+
+        // 使用 PriorityQueue 存储所有待处理的节点
+        Queue<String> queue = new PriorityQueue<>(Comparator.comparingInt(distances::get));
+        queue.add(word1);
+
+        // Dijkstra 算法主循环
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+
+            if (current.equals(word2)) {
+                break; // 找到目标节点，结束循环
+            }
+
+            for (Edge edge : graph.getOrDefault(current, Collections.emptySet())) {
+                String neighbor = edge.vertex;
+                int distanceThroughCurrent = distances.get(current) + edge.weight;
+
+                // 如果通过当前节点到达邻居节点的路径更短，则更新该路径
+                if (distanceThroughCurrent < distances.get(neighbor)) {
+                    distances.put(neighbor, distanceThroughCurrent);
+                    predecessors.put(neighbor, current); // 更新前驱节点
+
+                    // 重新将邻居节点加入队列，因为我们更新了它的最短路径估计
+                    queue.add(neighbor);
+                }
+            }
+        }
+
+        // 回溯构建最短路径字符串
+        StringBuilder path = new StringBuilder();
+        String current = word2;
+        while (current != null) {
+            path.insert(0, current + "->");
+            current = predecessors.get(current);
+        }
+
+        // 移除最后的 "->" 并添加源节点
+        path.delete(path.length() - "->".length(), path.length());
+
+        // 如果源节点和目标节点相同，或者没有路径连接它们
+        if (!path.toString().startsWith(word1)) {
+            return "No path from \"" + word1 + "\" to \"" + word2 + "\"!";
+        }
+
+        return path.toString();
     }
-    String randomWalk(){
-        return null;
+    volatile boolean stopRequested = false;
+    String randomWalk() {
+        if (graph.isEmpty()) {
+            return "Graph is empty";
+        }
+
+        // 从图中随机选择一个起始节点
+        Random random = new Random();
+        Set<String> nodes = graph.keySet();
+        final String[] current = {new ArrayList<>(nodes).get(random.nextInt(nodes.size()))};
+        // 记录访问过的边
+        Set<Edge> visitedEdges = new HashSet<>();
+        List<String> walkPath = new ArrayList<>();
+
+
+        Thread printThread = new Thread(() -> {
+            try {
+                stopRequested = false;
+                while (true) {
+                    // 添加当前节点到路径
+                    walkPath.add(current[0]);
+                    System.out.print(current[0] +"->");
+                    // 获取当前节点的所有出边
+                    Set<Edge> edges = graph.get(current[0]);
+                    if (edges.isEmpty()) {
+                        // 当前节点没有出边，结束游走
+                        break;
+                    }
+                    // 随机选择一条出边
+                    Edge chosenEdge = edges.stream().skip(random.nextInt(edges.size())).findFirst().orElse(null);
+                    // 如果选择的出边为空或者选择的出边已访问，则结束游走
+                    if (chosenEdge == null) {
+                        break;
+                    }
+                    else if (visitedEdges.contains(chosenEdge)) {
+                        current[0] = chosenEdge.vertex;
+                        System.out.println(current[0]);
+                        walkPath.add(current[0]);
+                        break;
+                    }
+                    // 添加选定的边到访问过的边集合中
+                    visitedEdges.add(chosenEdge);
+                    // 更新当前节点为选定边的目标节点
+                    current[0] = chosenEdge.vertex;
+                    Thread.sleep(1000); // 等待3秒
+                }
+            } catch (InterruptedException e) {
+                // 当等待过程中被中断，不进行任何操作
+            } finally {
+                stopRequested = true;
+                System.out.println("Traverse finished!");
+            }
+        });
+        Thread inputThread = new Thread(() -> {
+            while(!stopRequested){
+                //System.out.println("input:");
+                Scanner scanner = new Scanner(System.in);
+                if (scanner.nextLine().equalsIgnoreCase("s")) {
+                    // 如果用户输入了"stop"，则中断等待打印的线程
+                    printThread.interrupt();
+                }
+            }
+        });
+
+        printThread.start();
+        inputThread.start();
+        try {
+            // 等待两个线程执行完毕
+            printThread.join();
+            inputThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        // 构建并返回游走路径的字符串表示
+        return String.join(" ", walkPath);
     }
     void readFile(String filePath){   // 读取文件并且处理语句
         File file = new File(filePath);
@@ -134,12 +306,11 @@ public class TextGraph {
                 line = line.replaceAll("\\s+", " ");
                 // 将所有字母都替换为小写
                 line = line.toLowerCase();
-                text += line;
+                text = text + line + " ";
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        //System.out.println(text);
         String[] words = text.split("\\s+");    // 将text分割为字符串数组
         // 遍历单词数组，构建有向边
         int i;
@@ -175,6 +346,17 @@ public class TextGraph {
 //            }
 //        }
     }
+    // 根据两个单词获取边的权重
+    private int calculateEdgeWeight(String startWord, String endWord) {
+        if (graph.containsKey(startWord)) {
+            for (Edge edge : graph.get(startWord)) {
+                if (edge.vertex.equals(endWord)) {
+                    return edge.weight;
+                }
+            }
+        }
+        return 0;
+    }
     public static void main(String[] args) throws IOException {
         TextGraph textGraph = new TextGraph();  //实例化一个类
         textGraph.readFile("src/main/java/org/example/test.txt");
@@ -188,7 +370,10 @@ public class TextGraph {
             System.out.println("5. Perform Random Walk");
             System.out.println("0. Exit");
             System.out.print("Enter your choice (0-5): ");
-
+            while (!scanner.hasNextInt()) {
+                System.out.println("请输入一个整数:");
+                scanner.next(); // 清除输入缓冲区
+            }
             int choice = scanner.nextInt();
             switch (choice) {
                 case 1:
@@ -203,6 +388,7 @@ public class TextGraph {
                     break;
                 case 3:
                     System.out.print("Enter new text: ");
+                    scanner.nextLine(); // 清除换行符
                     String inputText = scanner.nextLine();
                     System.out.println(textGraph.generateNewText(inputText));
                     break;
@@ -211,10 +397,39 @@ public class TextGraph {
                     word1 = scanner.next();
                     System.out.print("Enter word2: ");
                     word2 = scanner.next();
-                    System.out.println(textGraph.calcShortestPath(word1, word2));
+
+                    String pathResult = textGraph.calcShortestPath(word1, word2);
+                    System.out.println(pathResult);
+
+                    // 如果路径存在，计算最短路径的长度
+                    if (!pathResult.startsWith("No")) {
+                        textGraph.showDirectedGraph(textGraph.graph, pathResult);
+                        String[] pathWords = pathResult.split("->");
+                        int pathLength = 0;
+                        String previousWord = word1.toLowerCase();
+
+                        // 遍历路径中的单词，累加权重
+                        for (String currentWord : pathWords) {
+                            currentWord = currentWord.toLowerCase();
+                            pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
+                            previousWord = currentWord;
+                        }
+
+                        System.out.println("The length of the shortest path from \"" + word1 + "\" to \"" + word2 + "\" is: " + pathLength);
+                    }
                     break;
                 case 5:
-                    System.out.println(textGraph.randomWalk());
+                    String randomWalkResult = textGraph.randomWalk();
+                    //System.out.println(randomWalkResult);
+                    // 将随机游走结果写入文件
+                    try {
+                        BufferedWriter writer = new BufferedWriter(new FileWriter("src/main/java/org/example/random_walk_path.txt"));
+                        writer.write(randomWalkResult);
+                        writer.close();
+                    } catch (IOException e) {
+                        System.out.println("An error occurred while writing to the file.");
+                        e.printStackTrace();
+                    }
                     break;
                 case 0:
                     System.out.println("Exiting program.");
