@@ -5,7 +5,6 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 import com.mxgraph.layout.mxCircleLayout;
@@ -76,6 +75,19 @@ public class TextGraph {
                     graphAdapter.getEdgeToCellMap().get(edge).setStyle("highlightedEdgeStyle");
                 }
             }
+            mxIGraphLayout layout = new mxCircleLayout(graphAdapter);
+            layout.execute(graphAdapter.getDefaultParent());
+            BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 1.3, Color.WHITE, true, null);
+            JFrame frame = new JFrame("Show Graph");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(700, 700); // 设置窗口大小
+            // 创建一个JLabel来显示图片
+            JLabel label = new JLabel(new ImageIcon(image));
+            // 将JLabel添加到JFrame中
+            frame.getContentPane().add(label);
+            // 显示窗口
+            frame.setVisible(true);
+            return;
         }
 
         //生成png文件
@@ -311,6 +323,7 @@ public class TextGraph {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        //System.out.println(text);
         String[] words = text.split("\\s+");    // 将text分割为字符串数组
         // 遍历单词数组，构建有向边
         int i;
@@ -393,31 +406,146 @@ public class TextGraph {
                     System.out.println(textGraph.generateNewText(inputText));
                     break;
                 case 4:
-                    System.out.print("Enter word1: ");
-                    word1 = scanner.next();
-                    System.out.print("Enter word2: ");
-                    word2 = scanner.next();
+                    // 询问用户是否输入第一个单词
+                    System.out.print("Do you want to enter the first word? (yes/no): ");
+                    String userInput = scanner.next();
+                    String startWord, endWord;
 
-                    String pathResult = textGraph.calcShortestPath(word1, word2);
-                    System.out.println(pathResult);
+                    if (userInput.equalsIgnoreCase("yes")) {
+                        System.out.print("Enter word1: ");
+                        startWord = scanner.next();
+                    } else if (userInput.equalsIgnoreCase("no")) {
+                        startWord = ""; // 为空表示以 endWord 为起点
+                    } else {
+                        System.out.println("Invalid choice. Please enter 'yes' or 'no'.");
+                        break;
+                    }
 
-                    // 如果路径存在，计算最短路径的长度
-                    if (!pathResult.startsWith("No")) {
-                        textGraph.showDirectedGraph(textGraph.graph, pathResult);
-                        String[] pathWords = pathResult.split("->");
-                        int pathLength = 0;
-                        String previousWord = word1.toLowerCase();
+                    // 如果用户输入了第一个单词，则询问是否输入第二个单词
+                    if (!startWord.isEmpty()) {
+                        System.out.print("Do you want to enter the second word? (yes/no): ");
+                        userInput = scanner.next();
 
-                        // 遍历路径中的单词，累加权重
-                        for (String currentWord : pathWords) {
-                            currentWord = currentWord.toLowerCase();
-                            pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
-                            previousWord = currentWord;
+                        if (userInput.equalsIgnoreCase("yes")) {
+                            System.out.print("Enter word2: ");
+                            endWord = scanner.next();
+                        } else if (userInput.equalsIgnoreCase("no")) {
+                            endWord = ""; // 为空表示以 startWord 为终点
+                        } else {
+                            System.out.println("Invalid choice. Please enter 'yes' or 'no'.");
+                            break;
                         }
+                    } else {
+                        // 如果用户没有输入第一个单词，则询问是否输入第二个单词
+                        System.out.print("Do you want to enter the second word? (yes/no): ");
+                        userInput = scanner.next();
 
-                        System.out.println("The length of the shortest path from \"" + word1 + "\" to \"" + word2 + "\" is: " + pathLength);
+                        if (userInput.equalsIgnoreCase("yes")) {
+                            System.out.print("Enter word2: ");
+                            endWord = scanner.next();
+                        } else if (userInput.equalsIgnoreCase("no")) {
+                            System.out.println("No Word1 and Word2.");
+                            break;
+                        } else {
+                            System.out.println("Invalid choice. Please enter 'yes' or 'no'.");
+                            break;
+                        }
+                    }
+
+                    // 如果两个输入的单词中有一个为空，则以不为空的单词为源或目标顶点
+                    String sourceWord = startWord.isEmpty() ? endWord : startWord;
+                    String targetWord = endWord.isEmpty() ? startWord : endWord;
+
+                    // 如果 startWord 不空，endWord 为空，则以 startWord 为源顶点，遍历除了 startWord 之外的所有顶点
+                    if (!startWord.isEmpty() && endWord.isEmpty()) {
+                        if (!textGraph.graph.containsKey(sourceWord)) {
+                            System.out.println("No " + "\"" + sourceWord + "\"" + " in the graph!");
+                        }
+                        else {
+                            for (String vertex : textGraph.graph.keySet()) {
+                                if (!vertex.equals(startWord)) {
+                                    // 以每个顶点作为目标顶点调用 calcShortestPath 函数计算最短路径
+                                    String shortestPath = textGraph.calcShortestPath(sourceWord, vertex);
+                                    System.out.println(shortestPath);
+
+                                    // 如果路径存在，展示最短路径和最短路径长度
+                                    if (!shortestPath.startsWith("No")) {
+                                        textGraph.showDirectedGraph(textGraph.graph, shortestPath);
+                                        String[] pathWords = shortestPath.split("->");
+                                        int pathLength = 0;
+                                        String previousWord = sourceWord.toLowerCase();
+
+                                        // 遍历路径中的单词，累加权重
+                                        for (String currentWord : pathWords) {
+                                            currentWord = currentWord.toLowerCase();
+                                            pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
+                                            previousWord = currentWord;
+                                        }
+
+                                        System.out.println("The length of the shortest path from \"" + sourceWord + "\" to \"" + vertex + "\" is: " + pathLength);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 如果 startWord 为空，endWord 不空，则以 endWord 为源顶点，遍历除了 endWord 之外的所有顶点
+                    else if (startWord.isEmpty() && !endWord.isEmpty())
+                    {
+                        if (!textGraph.graph.containsKey(targetWord)) {
+                            System.out.println("No " + "\"" + targetWord + "\"" + " in the graph!");
+                        }
+                        else {
+                            for (String vertex : textGraph.graph.keySet()) {
+                                if (!vertex.equals(endWord)) {
+                                    // 以每个顶点作为目标顶点调用 calcShortestPath 函数计算最短路径
+                                    String shortestPath = textGraph.calcShortestPath(targetWord, vertex);
+                                    System.out.println(shortestPath);
+
+                                    // 如果路径存在，展示最短路径和最短路径长度
+                                    if (!shortestPath.startsWith("No")) {
+                                        textGraph.showDirectedGraph(textGraph.graph, shortestPath);
+                                        String[] pathWords = shortestPath.split("->");
+                                        int pathLength = 0;
+                                        String previousWord = targetWord.toLowerCase();
+
+                                        // 遍历路径中的单词，累加权重
+                                        for (String currentWord : pathWords) {
+                                            currentWord = currentWord.toLowerCase();
+                                            pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
+                                            previousWord = currentWord;
+                                        }
+
+                                        System.out.println("The length of the shortest path from \"" + targetWord + "\" to \"" + vertex + "\" is: " + pathLength);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 如果 startWord 和 endWord 都不空，则以 startWord 为源顶点，endword 作为目标顶点
+                    else {
+                        // 计算并展示最短路径，并打印最短路径长度
+                        String shortestPath = textGraph.calcShortestPath(sourceWord, targetWord);
+                        System.out.println(shortestPath);
+
+                        // 如果路径存在，展示最短路径和最短路径长度
+                        if (!shortestPath.startsWith("No")) {
+                            textGraph.showDirectedGraph(textGraph.graph, shortestPath);
+                            String[] pathWords = shortestPath.split("->");
+                            int pathLength = 0;
+                            String previousWord = sourceWord.toLowerCase();
+
+                            // 遍历路径中的单词，累加权重
+                            for (String currentWord : pathWords) {
+                                currentWord = currentWord.toLowerCase();
+                                pathLength += textGraph.calculateEdgeWeight(previousWord, currentWord);
+                                previousWord = currentWord;
+                            }
+
+                            System.out.println("The length of the shortest path from \"" + sourceWord + "\" to \"" + targetWord + "\" is: " + pathLength);
+                        }
                     }
                     break;
+
                 case 5:
                     String randomWalkResult = textGraph.randomWalk();
                     //System.out.println(randomWalkResult);
