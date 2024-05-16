@@ -79,7 +79,7 @@ public class TextGraph {
             layout.execute(graphAdapter.getDefaultParent());
             BufferedImage image = mxCellRenderer.createBufferedImage(graphAdapter, null, 1.3, Color.WHITE, true, null);
             JFrame frame = new JFrame("Show Graph");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
             frame.setSize(700, 700); // 设置窗口大小
             // 创建一个JLabel来显示图片
             JLabel label = new JLabel(new ImageIcon(image));
@@ -97,9 +97,10 @@ public class TextGraph {
         File imgFile = new File("src/main/resources/graph.png");
         ImageIO.write(image,"PNG", imgFile);
         // 显示png文件
+
         Image imageShow = ImageIO.read(new File("src/main/resources/graph.png"));
         JFrame frame = new JFrame("Show Graph");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(700, 700); // 设置窗口大小
         // 创建一个JLabel来显示图片
         JLabel label = new JLabel(new ImageIcon(image));
@@ -234,7 +235,6 @@ public class TextGraph {
         if (graph.isEmpty()) {
             return "Graph is empty";
         }
-
         // 从图中随机选择一个起始节点
         Random random = new Random();
         Set<String> nodes = graph.keySet();
@@ -242,11 +242,10 @@ public class TextGraph {
         // 记录访问过的边
         Set<Edge> visitedEdges = new HashSet<>();
         List<String> walkPath = new ArrayList<>();
-
-
         Thread printThread = new Thread(() -> {
             try {
                 stopRequested = false;
+                System.out.println("Input \"s\" to stop");
                 while (true) {
                     // 添加当前节点到路径
                     walkPath.add(current[0]);
@@ -273,7 +272,7 @@ public class TextGraph {
                     visitedEdges.add(chosenEdge);
                     // 更新当前节点为选定边的目标节点
                     current[0] = chosenEdge.vertex;
-                    Thread.sleep(1000); // 等待3秒
+                    Thread.sleep(2000); // 等待2秒
                 }
             } catch (InterruptedException e) {
                 // 当等待过程中被中断，不进行任何操作
@@ -284,13 +283,13 @@ public class TextGraph {
         });
         Thread inputThread = new Thread(() -> {
             while(!stopRequested){
-                //System.out.println("input:");
                 Scanner scanner = new Scanner(System.in);
                 if (scanner.nextLine().equalsIgnoreCase("s")) {
                     // 如果用户输入了"stop"，则中断等待打印的线程
                     printThread.interrupt();
                 }
             }
+            //System.out.println("stopRequested:"+stopRequested);
         });
 
         printThread.start();
