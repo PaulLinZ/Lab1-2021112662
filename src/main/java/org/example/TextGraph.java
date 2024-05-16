@@ -245,15 +245,16 @@ public class TextGraph {
         Thread printThread = new Thread(() -> {
             try {
                 stopRequested = false;
-                System.out.println("Input \"s\" to stop");
+                System.out.println("Input \"s\" to stop!");
                 while (true) {
                     // 添加当前节点到路径
                     walkPath.add(current[0]);
-                    System.out.print(current[0] +"->");
+                    System.out.print(current[0]);
                     // 获取当前节点的所有出边
                     Set<Edge> edges = graph.get(current[0]);
                     if (edges.isEmpty()) {
                         // 当前节点没有出边，结束游走
+                        System.out.println("\r");
                         break;
                     }
                     // 随机选择一条出边
@@ -264,10 +265,12 @@ public class TextGraph {
                     }
                     else if (visitedEdges.contains(chosenEdge)) {
                         current[0] = chosenEdge.vertex;
+                        System.out.print("->");
                         System.out.println(current[0]);
                         walkPath.add(current[0]);
                         break;
                     }
+                    System.out.print("->");
                     // 添加选定的边到访问过的边集合中
                     visitedEdges.add(chosenEdge);
                     // 更新当前节点为选定边的目标节点
@@ -282,15 +285,23 @@ public class TextGraph {
             }
         });
         Thread inputThread = new Thread(() -> {
-            while(!stopRequested){
-                Scanner scanner = new Scanner(System.in);
-                if (scanner.nextLine().equalsIgnoreCase("s")) {
-                    // 如果用户输入了"stop"，则中断等待打印的线程
-                    printThread.interrupt();
+            try {
+                while (!stopRequested) {
+                    // 持续检查是否有输入可读取，不会阻塞主线程的执行
+                    if (System.in.available() > 0) {
+                        Scanner scanner = new Scanner(System.in);
+                        if (scanner.nextLine().equalsIgnoreCase("s")) {
+                            // 如果用户输入了 "s"，则中断等待打印的线程
+                            printThread.interrupt();
+                        }
+                    }
+                    Thread.sleep(100); // 等待一段时间再检查是否有输入
                 }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-            //System.out.println("stopRequested:"+stopRequested);
         });
+
 
         printThread.start();
         inputThread.start();
