@@ -411,6 +411,9 @@ public class TextGraph {
                         if (userInput.equalsIgnoreCase("yes")) {
                             System.out.print("Enter word2: ");
                             endWord = scanner.next();
+                        } else if (userInput.equalsIgnoreCase("no")) {
+                            System.out.println("No Word1 and Word2.");
+                            break;
                         } else {
                             System.out.println("Invalid choice. Please enter 'yes' or 'no'.");
                             break;
@@ -471,7 +474,7 @@ public class TextGraph {
                                         textGraph.showDirectedGraph(textGraph.graph, shortestPath);
                                         String[] pathWords = shortestPath.split("->");
                                         int pathLength = 0;
-                                        String previousWord = vertex.toLowerCase();
+                                        String previousWord = targetWord.toLowerCase();
 
                                         // 遍历路径中的单词，累加权重
                                         for (String currentWord : pathWords) {
@@ -487,7 +490,7 @@ public class TextGraph {
                         }
                     }
                     // 如果 startWord 和 endWord 都不空，则以 startWord 为源顶点，endword 作为目标顶点
-                    else if (!startWord.isEmpty() && !endWord.isEmpty()) {
+                    else {
                         // 计算并展示最短路径，并打印最短路径长度
                         String shortestPath = textGraph.calcShortestPath(sourceWord, targetWord);
                         System.out.println(shortestPath);
@@ -508,9 +511,6 @@ public class TextGraph {
 
                             System.out.println("The length of the shortest path from \"" + sourceWord + "\" to \"" + targetWord + "\" is: " + pathLength);
                         }
-                    }
-                    else{
-                        System.out.println("No Word1 and Word2.");
                     }
                     break;
 
