@@ -16,6 +16,7 @@ import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphXAdapter;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultWeightedEdge;
+import org.jgrapht.graph.FastLookupGraphSpecificsStrategy;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -380,11 +381,16 @@ public class TextGraph {
         }
         return 0;
     }
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         TextGraph textGraph = new TextGraph();  //实例化一个类
         textGraph.readFile("src/main/java/org/example/test.txt");
         Scanner scanner = new Scanner(System.in);
+        boolean firstTag = false;
         while (true) {
+            if(firstTag){
+                Thread.sleep(2000);
+            }
+            firstTag = true;
             System.out.println("\nSelect a feature to perform an action:");
             System.out.println("1. Show Directed Graph");
             System.out.println("2. Query Bridge Words");
