@@ -361,14 +361,7 @@ public class TextGraph {
             }
         }
         graph.computeIfAbsent(words[i],k -> new HashSet<>());   // 处理最后一个单词，如果已经有set集合则不需要创建，没有需要创建
-//        for (Map.Entry<String, Set<Edge>> entry : graph.entrySet()) {
-//            String vertex = entry.getKey();
-//            Set<Edge> edges = entry.getValue();
-//            System.out.println("Vertex: " + vertex);
-//            for (Edge edge : edges) {
-//                System.out.println("  -> " + edge.vertex + " (weight: " + edge.weight + ")");
-//            }
-//        }
+
     }
     // 根据两个单词获取边的权重
     private int calculateEdgeWeight(String startWord, String endWord) {
