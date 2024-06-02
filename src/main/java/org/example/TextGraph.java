@@ -168,6 +168,7 @@ public class TextGraph {
         // 返回生成的新文本
         return newText.toString();
     }
+    //更改了内容
     String calcShortestPath(String word1, String word2) {
         word1 = word1.toLowerCase();
         word2 = word2.toLowerCase();
